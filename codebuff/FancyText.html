@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fancy Text Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+
+        .input-container {
+            margin: 20px;
+        }
+
+        input {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #3498db;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .display-text {
+            font-size: 2em;
+            margin-top: 40px;
+            padding: 20px;
+            border-radius: 8px;
+            animation: colorChange 5s infinite;
+            transition: transform 0.3s;
+        }
+
+        .display-text:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes colorChange {
+            0% {
+                color: #e74c3c;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            }
+            25% {
+                color: #3498db;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            }
+            50% {
+                color: #2ecc71;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            }
+            75% {
+                color: #f1c40f;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            }
+            100% {
+                color: #e74c3c;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="input-container">
+        <input type="text" id="textInput" placeholder="Enter your text">
+        <button onclick="displayText()">Enter</button>
+    </div>
+    <div id="output"></div>
+
+    <script>
+        // Also handle Enter key press
+        document.getElementById('textInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                displayText();
+            }
+        });
+
+        function displayText() {
+            const input = document.getElementById('textInput');
+            const output = document.getElementById('output');
+            
+            if (input.value.trim() !== '') {
+                // Create new element with animation class
+                const displayElement = document.createElement('div');
+                displayElement.className = 'display-text';
+                displayElement.textContent = input.value;
+                
+                // Clear previous output and add new text
+                output.innerHTML = '';
+                output.appendChild(displayElement);
+                
+                // Clear input
+                input.value = '';
+            }
+        }
+    </script>
+</body>
+</html>

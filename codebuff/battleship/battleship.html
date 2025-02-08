@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battleship Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f0f8ff;
+        }
+        .grids-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        .grid-section {
+            display: inline-block;
+        }
+        .grid {
+            display: inline-grid;
+            grid-template-columns: repeat(10, 40px);
+            gap: 2px;
+            margin: 20px;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            background-color: #fff;
+            border: 1px solid #999;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .hit {
+            background-color: #ff6b6b;
+        }
+        .miss {
+            background-color: #74b9ff;
+        }
+        .ship {
+            background-color: #a8e6cf;
+        }
+        .placing {
+            background-color: #ffd93d;
+        }
+        .sunk {
+            background-color: #ffd93d !important;
+        }
+        #message {
+            margin: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2d3436;
+        }
+        #stats {
+            margin: 20px;
+            font-size: 1.1em;
+            color: #2d3436;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #74b9ff;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #0984e3;
+        }
+        .rotate-btn {
+            background-color: #fab1a0;
+        }
+        .rotate-btn:hover {
+            background-color: #e17055;
+        }
+        h2 {
+            color: #2d3436;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Battleship Game</h1>
+    <div id="message">Place your ships!</div>
+    <button id="rotateBtn" class="rotate-btn" onclick="toggleRotation()">Rotate Ship</button>
+    <div id="stats">Your Hits: <span id="playerHits">0</span> | Computer Hits: <span id="computerHits">0</span></div>
+    
+    <div class="grids-container">
+        <div class="grid-section">
+            <h2>Your Grid</h2>
+            <div id="playerGrid" class="grid"></div>
+        </div>
+        <div class="grid-section">
+            <h2>Computer's Grid</h2>
+            <div id="computerGrid" class="grid"></div>
+        </div>
+    </div>
+    
+    <button onclick="newGame()">New Game</button>
+
+    <script>
+        const GRID_SIZE = 10;
+        const SHIPS = [
+            { size: 5, name: 'Carrier' },
+            { size: 4, name: 'Battleship' },
+            { size: 3, name: 'Cruiser' },
+            { size: 3, name: 'Submarine' },
+            { size: 2, name: 'Destroyer' }
+        ];
+
+        let playerGrid = [];
+        let computerGrid = [];
+        let playerHits = 0;
+        let computerHits = 0;
+        let playerShips = [];
+        let computerShips = [];
+        let currentShipIndex = 0;
+        let isHorizontal = true;
+        let gameStarted = false;
+        let playerTurn = true;
+
+        function createGrid(gridId) {
+            const gridElement = document.getElementById(gridId);
+            gridElement.innerHTML = '';
+            
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    if (gridId === 'playerGrid') {
+                        cell.addEventListener('mouseover', handleCellHover);
+                        cell.addEventListener('mouseout', handleCellOut);
+                        cell.addEventListener('click', handlePlayerPlacement);
+                    } else {
+                        cell.addEventListener('click', handlePlayerShot);
+                    }
+                    gridElement.appendChild(cell);
+                }
+            }
+        }
+
+        function initializeGrid() {
+            playerGrid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+            computerGrid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+        }
+
+        function toggleRotation() {
+            isHorizontal = !isHorizontal;
+            // Clear any existing hover effects
+            const cells = document.querySelectorAll('#playerGrid .cell');
+            cells.forEach(cell => cell.classList.remove('placing'));
+        }
+
+        function handleCellHover(event) {
+            if (currentShipIndex >= SHIPS.length) return;
+            
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+            const size = SHIPS[currentShipIndex].size;
+
+            if (canPlaceShip(playerGrid, row, col, size, isHorizontal)) {
+                showPlacementPreview(row, col, size, true);
+            }
+        }
+
+        function handleCellOut() {
+            if (currentShipIndex >= SHIPS.length) return;
+            showPlacementPreview(0, 0, 0, false);
+        }
+
+        function showPlacementPreview(row, col, size, show) {
+            const cells = document.querySelectorAll('#playerGrid .cell');
+            cells.forEach(cell => cell.classList.remove('placing'));
+
+            if (!show) return;
+
+            if (isHorizontal) {
+                for (let i = 0; i < size && col + i < GRID_SIZE; i++) {
+                    const index = row * GRID_SIZE + (col + i);
+                    if (index < cells.length) cells[index].classList.add('placing');
+                }
+            } else {
+                for (let i = 0; i < size && row + i < GRID_SIZE; i++) {
+                    const index = (row + i) * GRID_SIZE + col;
+                    if (index < cells.length) cells[index].classList.add('placing');
+                }
+            }
+        }
+
+        function handlePlayerPlacement(event) {
+            if (currentShipIndex >= SHIPS.length) return;
+
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+            const size = SHIPS[currentShipIndex].size;
+
+            if (canPlaceShip(playerGrid, row, col, size, isHorizontal)) {
+                placeShip(playerGrid, row, col, size, isHorizontal, playerShips);
+                updateGridDisplay('playerGrid', playerGrid);
+                currentShipIndex++;
+
+                if (currentShipIndex >= SHIPS.length) {
+                    startGame();
+                } else {
+                    document.getElementById('message').textContent = 
+                        `Place your ${SHIPS[currentShipIndex].name} (${SHIPS[currentShipIndex].size} cells)`;
+                }
+            }
+        }
+
+        function canPlaceShip(grid, row, col, size, horizontal) {
+            if (horizontal) {
+                if (col + size > GRID_SIZE) return false;
+                for (let i = 0; i < size; i++) {
+                    if (grid[row][col + i] === 1) return false;
+                }
+            } else {
+                if (row + size > GRID_SIZE) return false;
+                for (let i = 0; i < size; i++) {
+                    if (grid[row + i][col] === 1) return false;
+                }
+            }
+            return true;
+        }
+
+        function placeShip(grid, row, col, size, horizontal, ships) {
+            const shipCells = [];
+            if (horizontal) {
+                for (let i = 0; i < size; i++) {
+                    grid[row][col + i] = 1;
+                    shipCells.push({row: row, col: col + i});
+                }
+            } else {
+                for (let i = 0; i < size; i++) {
+                    grid[row + i][col] = 1;
+                    shipCells.push({row: row + i, col: col});
+                }
+            }
+            ships.push({cells: shipCells, hits: 0});
+        }
+
+        function placeComputerShips() {
+            SHIPS.forEach(ship => {
+                let placed = false;
+                while (!placed) {
+                    const horizontal = Math.random() < 0.5;
+                    const row = Math.floor(Math.random() * GRID_SIZE);
+                    const col = Math.floor(Math.random() * GRID_SIZE);
+
+                    if (canPlaceShip(computerGrid, row, col, ship.size, horizontal)) {
+                        placeShip(computerGrid, row, col, ship.size, horizontal, computerShips);
+                        placed = true;
+                    }
+                }
+            });
+        }
+
+        function updateGridDisplay(gridId, grid) {
+            const cells = document.querySelectorAll(`#${gridId} .cell`);
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const cell = cells[i * GRID_SIZE + j];
+                    if (grid[i][j] === 1 && gridId === 'playerGrid') {
+                        cell.classList.add('ship');
+                    }
+                }
+            }
+        }
+
+        function handlePlayerShot(event) {
+            if (!gameStarted || !playerTurn) return;
+
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+
+            if (event.target.classList.contains('hit') || 
+                event.target.classList.contains('miss')) {
+                return;
+            }
+
+            if (computerGrid[row][col] === 1) {
+                event.target.classList.add('hit');
+                playerHits++;
+                document.getElementById('playerHits').textContent = playerHits;
+                
+                // Check if a ship was sunk
+                for (let ship of computerShips) {
+                    const hitCell = ship.cells.find(cell => cell.row === row && cell.col === col);
+                    if (hitCell) {
+                        ship.hits++;
+                        if (ship.hits === ship.cells.length) {
+                            // Ship is sunk, highlight all its cells
+                            ship.cells.forEach(cell => {
+                                const shipCell = document.querySelector(`#computerGrid .cell[data-row="${cell.row}"][data-col="${cell.col}"]`);
+                                shipCell.classList.add('sunk');
+                            });
+                        }
+                        break;
+                    }
+                }
+                
+                if (playerHits === SHIPS.reduce((acc, ship) => acc + ship.size, 0)) {
+                    document.getElementById('message').textContent = 'Congratulations! You won!';
+                    gameStarted = false;
+                    return;
+                }
+            } else {
+                event.target.classList.add('miss');
+            }
+
+            playerTurn = false;
+            setTimeout(computerTurn, 1000);
+        }
+
+        function computerTurn() {
+            if (!gameStarted) return;
+
+            let row, col;
+            do {
+                row = Math.floor(Math.random() * GRID_SIZE);
+                col = Math.floor(Math.random() * GRID_SIZE);
+            } while (isAlreadyShot(row, col));
+
+            const cell = document.querySelector(`#playerGrid .cell[data-row="${row}"][data-col="${col}"]`);
+
+            if (playerGrid[row][col] === 1) {
+                cell.classList.add('hit');
+                computerHits++;
+                document.getElementById('computerHits').textContent = computerHits;
+                
+                // Check if a ship was sunk
+                for (let ship of playerShips) {
+                    const hitCell = ship.cells.find(cell => cell.row === row && cell.col === col);
+                    if (hitCell) {
+                        ship.hits++;
+                        if (ship.hits === ship.cells.length) {
+                            // Ship is sunk, highlight all its cells
+                            ship.cells.forEach(cell => {
+                                const shipCell = document.querySelector(`#playerGrid .cell[data-row="${cell.row}"][data-col="${cell.col}"]`);
+                                shipCell.classList.add('sunk');
+                            });
+                        }
+                        break;
+                    }
+                }
+                
+                if (computerHits === SHIPS.reduce((acc, ship) => acc + ship.size, 0)) {
+                    document.getElementById('message').textContent = 'Game Over! Computer won!';
+                    gameStarted = false;
+                    return;
+                }
+            } else {
+                cell.classList.add('miss');
+            }
+
+            playerTurn = true;
+            document.getElementById('message').textContent = 'Your turn!';
+        }
+
+        function isAlreadyShot(row, col) {
+            const cell = document.querySelector(`#playerGrid .cell[data-row="${row}"][data-col="${col}"]`);
+            return cell.classList.contains('hit') || cell.classList.contains('miss');
+        }
+
+        function startGame() {
+            document.getElementById('message').textContent = 'Game started! Your turn!';
+            document.getElementById('rotateBtn').style.display = 'none';
+            gameStarted = true;
+            playerTurn = true;
+        }
+
+        function newGame() {
+            playerHits = 0;
+            computerHits = 0;
+            currentShipIndex = 0;
+            isHorizontal = true;
+            gameStarted = false;
+            playerTurn = true;
+            playerShips = [];
+            computerShips = [];
+            
+            document.getElementById('playerHits').textContent = playerHits;
+            document.getElementById('computerHits').textContent = computerHits;
+            document.getElementById('message').textContent = 
+                `Place your ${SHIPS[0].name} (${SHIPS[0].size} cells)`;
+            document.getElementById('rotateBtn').style.display = 'inline-block';
+            
+            initializeGrid();
+            createGrid('playerGrid');
+            createGrid('computerGrid');
+            placeComputerShips();
+        }
+
+        // Start new game when page loads
+        newGame();
+    </script>
+</body>
+</html>

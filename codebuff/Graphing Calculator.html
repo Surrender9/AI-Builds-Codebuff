@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Graphing Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TI-Nspire Graphing Calculator</title>
+     <link rel="stylesheet" href="graphing-calculator.css">
+ </head>
+ <body>
+     <div class="calculator-container">
+        <div class="function-display" id="functionDisplay">f(x) = </div>
+        
+         <div class="input-section">
+            <input type="text" id="equation" placeholder="Enter equation (e.g., x^2 + 2x + 1)">
+            <div class="error-message" id="error">Invalid equation format</div>
+            <input type="text" 
+                   id="equation" 
+                   placeholder="Enter function (e.g., sin(x) or x^2)" 
+                   spellcheck="false"
+                   autocomplete="off">
+            <div class="error-message" id="error"></div>
+         </div>
+         
+        <div class="result-display" id="resultDisplay"></div>
+        <div class="controls">
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="adjustZoom(0.8)">Zoom In</button>
+                <button class="zoom-btn" onclick="adjustZoom(1.2)">Zoom Out</button>
+            </div>
+            
+            <div class="navigation-controls">
+                <button class="nav-btn" onclick="pan('left')">←</button>
+                <button class="nav-btn" onclick="pan('up')">↑</button>
+                <button class="nav-btn" onclick="pan('right')">→</button>
+                <div></div>
+                <button class="nav-btn" onclick="pan('down')">↓</button>
+                <div></div>
+            </div>
+        </div>
+         
+         <div class="button-section">
+            
+            <button class="function-btn" onclick="addToEquation('x^2')">x²</button>
+            <button class="function-btn" onclick="addToEquation('x^3')">x³</button>
+            <button class="function-btn" onclick="addToEquation('x^(1/2)')">√x</button>
+            <button class="function-btn" onclick="addToEquation('x^(1/3)')">∛x</button>
+            
+            <!-- Function buttons -->
+             <button class="function-btn" onclick="addToEquation('sin)(')">sin</button>
+             <button class="function-btn" onclick="addToEquation('cos)(')">cos</button>
+             <button class="function-btn" onclick="addToEquation('tan)(')">tan</button>
+            <button class="function-btn" onclick="addToEquation('sqrt)(')">√</button>
+            <button class="function-btn" onclick="addToEquation('^')">^</button>
+             
+            <!-- Number pad -->
+             <button onclick="addToEquation('7')">7</button>
+             <button onclick="addToEquation('8')">8</button>
+             <button onclick="addToEquation('9')">9</button>
+             <button onclick="addToEquation('/')">/</button>
+
+             <button onclick="addToEquation('4')">4</button>
+             <button onclick="addToEquation('5')">5</button>
+             <button onclick="addToEquation('6')">6</button>
+             
+             <button onclick="addToEquation('1')">1</button>
+             <button onclick="addToEquation('2')">2</button>
+             <button onclick="addToEquation('3')">3</button>
+            <button onclick="addToEquation('-')">-</button>
+            
+             
+             <button onclick="addToEquation('0')">0</button>
+             <button onclick="addToEquation('.')">.</button>
+            <button onclick="addToEquation('^')">^</button>
+           <button onclick="addToEquation('x')">x</button>
+             
+
+            <button class="enter-btn" onclick="calculateAndDraw()">Enter</button>
+            
+            <!-- Action buttons -->
+            <button class="clear-btn" onclick="clearDisplay()">Clear</button>
+            <button class="enter-btn" onclick="calculateAndDraw()">Graph</button>
+         </div>
+         
+         <div class="canvas-container">
+            <button class="toggle-btn" onclick="toggleTickLabels()">Hide Labels</button>
+             <canvas id="graphCanvas"></canvas>
+         </div>
+     </div>
+ 
+     <script>
+        // Add viewport tracking variables
+        let viewportOffset = { x: 0, y: 0 };
+        let isDragging = false;
+        let lastMousePos = { x: 0, y: 0 };
+        let showTickLabels = true;
+        let scale = 1;
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+            canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            drawGraph();
+        }
+ 
+         function addToEquation(value) {
+             const input = document.getElementById('equation');
+            const display = document.getElementById('functionDisplay');
+            input.value += value;
+            display.textContent = 'f(x) = ' + input.value;
+        }
+
+        function calculateAndDraw() {
+            const equation = document.getElementById('equation').value;
+            const resultDisplay = document.getElementById('resultDisplay');
+            
+            try {
+                // Calculate some key points
+                const results = [];
+                const keyPoints = [-5, -2, -1, 0, 1, 2, 5];
+                
+                keyPoints.forEach(x => {
+                    const y = evaluateEquation(equation, x);
+                    results.push(`f(${x}) = ${y.toFixed(2)}`);
+                });
+                
+                resultDisplay.innerHTML = results.join('<br>');
+                drawGraph();
+            } catch(e) {
+                resultDisplay.innerHTML = 'Error evaluating equation';
+                document.getElementById('error').style.display = 'block';
+            }
+        function clearDisplay() {
+            const input = document.getElementById('equation');
+            const display = document.getElementById('functionDisplay');
+            const error = document.getElementById('error');
+            input.value = '';
+            display.textContent = 'f(x) = ';
+            error.style.display = 'none';
+            drawGraph();
+        }
+    }
+        function drawGraph() {
+            const canvas = document.getElementById('graphCanvas');
+            const ctx = canvas.getContext('2d');
+            const equation = document.getElementById('equation').value;
+            const errorDiv = document.getElementById('error');
+            
+            // Clear previous graph
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            try {
+                // Set canvas size to match container
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+                
+                // Draw axes with tick marks
+                drawAxesWithTicks(ctx, canvas.width, canvas.height);
+        function adjustZoom(factor) {
+            scale *= factor;
+            drawGraph();
+        }
+    
+                if (!equation) return;
+                
+                // Draw graph
+                ctx.beginPath();
+                ctx.strokeStyle = '#4a90e2';
+                let isFirstValidPoint = true;
+                
+                // Adjust x range based on viewport offset
+                const xStart = -10 + viewportOffset.x;
+                const xEnd = 10 + viewportOffset.x;
+                
+                for(let x = xStart; x <= xEnd; x += 0.1) {
+                    try {
+                        let y = evaluateEquation(equation, x);
+                        
+                        if (!isFinite(y) || isNaN(y)) continue;
+                        
+                        // Adjust for viewport offset when mapping to canvas
+                        let canvasX = ((x - viewportOffset.x) + 10) * canvas.width/20;
+                        let canvasY = canvas.height/2 - (y - viewportOffset.y) * canvas.height/20;
+                        
+                        if (canvasY < -1000 || canvasY > canvas.height + 1000) continue;
+                        
+                        if (isFirstValidPoint) {
+                            ctx.moveTo(canvasX, canvasY);
+                            isFirstValidPoint = false;
+                        } else {
+                            ctx.lineTo(canvasX, canvasY);
+                        }
+                    } catch(e) {
+                        isFirstValidPoint = true;
+                    }
+                }
+                
+                ctx.stroke();
+                errorDiv.style.display = 'none';
+            } catch(e) {
+                errorDiv.style.display = 'block';}
+        function pan(direction) {
+            const step = 50 / scale;
+            switch(direction) {
+                case 'left': viewportOffset.x -= step; break;
+                case 'right': viewportOffset.x += step; break;
+                case 'up': viewportOffset.y += step; break;
+                case 'down': viewportOffset.y -= step; break;
+            }
+            drawGraph();
+        }
+    }
+        function drawAxesWithTicks(ctx, width, height) {
+            const tickSize = 5;
+            const tickSpacing = width / 20;}
+        function drawGrid() {
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+            
+            // Draw main axes
+            ctx.beginPath();
+            ctx.strokeStyle = '#ccc';
+            // Draw grid lines
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 0.5;
+            
+            // X axis
+            ctx.moveTo(0, height/2);
+            ctx.lineTo(width, height/2);
+            const gridSize = 50 * scale;
+            const offsetX = (viewportOffset.x * scale) % gridSize;
+            const offsetY = (viewportOffset.y * scale) % gridSize;
+            
+            // Y axis
+            ctx.moveTo(width/2, 0);
+            ctx.lineTo(width/2, height);
+            
+            ctx.stroke();
+
+            // Draw tick marks
+            ctx.beginPath();
+            ctx.strokeStyle = '#999';
+        }
+            // Only set text properties if we're showing labels
+            if (showTickLabels) {
+                ctx.fillStyle = '#666';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+            // Vertical grid lines
+            for(let x = offsetX; x < width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            
+            // X axis ticks
+            for(let i = -10; i <= 10; i++) {
+                const x = ((i - viewportOffset.x) + 10) * width/20;
+                
+                // Draw tick
+                ctx.moveTo(x, height/2 - tickSize);
+                ctx.lineTo(x, height/2 + tickSize);
+                
+                // Label tick if enabled
+                if (showTickLabels) {
+                    const label = (i + viewportOffset.x).toFixed(1);
+                    ctx.fillText(label, x, height/2 + tickSize + 15);
+                }
+            // Horizontal grid lines
+            for(let y = offsetY; y < height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+            
+            // Y axis ticks
+            for(let i = -10; i <= 10; i++) {
+                const y = height/2 - (i - viewportOffset.y) * height/20;
+                
+                // Draw tick
+                ctx.moveTo(width/2 - tickSize, y);
+                ctx.lineTo(width/2 + tickSize, y);
+                
+                // Label tick if enabled
+                if (showTickLabels) {
+                    const label = (i + viewportOffset.y).toFixed(1);
+                    ctx.fillText(label, width/2 + tickSize + 15, y + 4);
+                }
+            }
+            // Draw axes
+            ctx.strokeStyle = '#00ccff';
+            ctx.lineWidth = 1.5;
+            
+            // X-axis
+            const yAxis = height/2 - viewportOffset.y * scale;
+            ctx.beginPath();
+            ctx.moveTo(0, yAxis);
+            ctx.lineTo(width, yAxis);
+            ctx.stroke();
+            
+            // Y-axis
+            const xAxis = width/2 + viewportOffset.x * scale;
+            ctx.beginPath();
+            ctx.moveTo(xAxis, 0);
+            ctx.lineTo(xAxis, height);
+            ctx.stroke();
+        }
+    }
+        function toggleTickLabels() {
+            showTickLabels = !showTickLabels;
+            const button = document.querySelector('.toggle-btn');
+            button.textContent = showTickLabels ? 'Hide Labels' : 'Show Labels';
+            drawGraph();
+        function evaluateFunction(x, equation) {
+            let expr = equation
+                .replace(/sin/g, 'Math.sin')
+                .replace(/cos/g, 'Math.cos')
+                .replace(/tan/g, 'Math.tan')
+                .replace(/\^/g, '**');
+            
+            try {
+                return eval(expr.replace(/x/g, `(${x})`));
+            } catch(e) {
+                throw new Error('Invalid equation');
+            }
+        }
+    }
+        function initDragHandlers() {
+            const canvas = document.getElementById('graphCanvas');
+        function drawGraph() {
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMousePos = {
+                    x: e.clientX,
+                    y: e.clientY
+                };
+            });
+            ctx.clearRect(0, 0, width, height);
+            drawGrid();
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const dx = e.clientX - lastMousePos.x;
+                const dy = e.clientY - lastMousePos.y;
+                
+                // Update viewport offset based on drag distance
+                viewportOffset.x -= dx * 20/canvas.width;
+                viewportOffset.y += dy * 20/canvas.height;
+                
+                lastMousePos = {
+                    x: e.clientX,
+                    y: e.clientY
+                };
+                
+                drawGraph();
+            });
+            const equation = document.getElementById('equation').value;
+            if (!equation) return;
+            
+            canvas.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            canvas.addEventListener('mouseleave', () => {
+                isDragging = false;
+            });
+        }
+
+        function evaluateEquation(equation, x) {
+            if (!equation) return 0;
+            
+            try {
+                // Replace mathematical functions with Math equivalents
+                equation = equation.replace(/sin/g, 'Math.sin');
+                equation = equation.replace(/cos/g, 'Math.cos');
+                equation = equation.replace(/tan/g, 'Math.tan');
+                equation = equation.replace(/sqrt/g, 'Math.sqrt');
+                equation = equation.replace(/\^/g, '**');
+                ctx.beginPath();
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                
+                // Replace x with the actual value
+                equation = equation.replace(/x/g, `(${x})`);
+                let isFirstPoint = true;
+                
+                const result = eval(equation);
+                return result;
+                for(let px = 0; px < width; px++) {
+                    const x = (px - width/2)/scale - viewportOffset.x;
+                    try {
+                        const y = evaluateFunction(x, equation);
+                        const py = height/2 - (y * scale + viewportOffset.y * scale);
+                        
+                        if (isFirstPoint) {
+                            ctx.moveTo(px, py);
+                            isFirstPoint = false;
+                        } else {
+                            ctx.lineTo(px, py);
+                        }
+                    } catch(e) {
+                        isFirstPoint = true;
+                    }
+                }
+                
+                ctx.stroke();
+                document.getElementById('error').style.display = 'none';
+            } catch(e) {
+                throw new Error('Invalid equation');
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = 'Invalid equation format';
+            }
+        }
+
+        function clearAll() {
+            const input = document.getElementById('equation');
+            const resultDisplay = document.getElementById('resultDisplay');
+            const errorDiv = document.getElementById('error');
+            input.value = '';
+            resultDisplay.innerHTML = '';
+            errorDiv.style.display = 'none';
+            drawGraph();
+        }
+
+        // Initialize drag handlers when window loads
+        window.onload = () => {
+            const canvas = document.getElementById('graphCanvas');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            initDragHandlers();
+            drawGraph();
+        };
+
+        // Redraw on window resize
+        window.addEventListener('resize', drawGraph);
+
+        // Add keyboard support for Enter key
+        // Event Listeners
+        window.addEventListener('resize', resizeCanvas);
+        
+        document.getElementById('equation').addEventListener('input', function() {
+            document.getElementById('functionDisplay').textContent = 'f(x) = ' + this.value;
+        });
+        
+        document.getElementById('equation').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                calculateAndDraw();
+            }
+        });
+
+        function calculateAndDraw() {
+            drawGraph();
+        }
+        
+        // Initialize
+        resizeCanvas();}
+     </script>
+ </body>
+ </html>

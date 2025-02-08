@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apple Scientific & Graphing Calculator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="calculator">
+    <!-- Mode Tabs -->
+    <div class="mode-tabs">
+      <button id="calcModeBtn" class="mode-btn active" onclick="switchMode('calc')">Calculator</button>
+      <button id="graphModeBtn" class="mode-btn" onclick="switchMode('graph')">Graphing</button>
+    </div>
+    
+    <!-- Calculator Section -->
+    <div id="calc-section">
+      <div class="display">
+        <div class="previous-operand" id="previous-operand"></div>
+        <div class="current-operand" id="current-operand">0</div>
+      </div>
+      <div class="buttons">
+        <!-- Scientific functions row -->
+        <button class="function" onclick="toggleInverse()" id="inverseBtn">x⁻¹</button>
+        <button class="function" onclick="appendText('e^(')">eˣ</button>
+        <button class="function" onclick="appendText('10^(')">10ˣ</button>
+        <button class="function" onclick="clearDisplay()">AC</button>
+        
+        <button class="function" onclick="appendText('x^2')">x²</button>
+        <button class="function" onclick="appendText('x^3')">x³</button>
+        <button class="function" onclick="appendText('x^(')">xⁿ</button>
+        <button class="function" onclick="percentage()">%</button>
+        
+        <button class="function" onclick="appendText('(')">(</button>
+        <button class="function" onclick="appendText(')')">)</button>
+        <button class="function" onclick="appendText('sin(')" data-inverse="asin(">sin</button>
+        <button class="operator" onclick="appendText('÷')">÷</button>
+        
+        <button class="function" onclick="appendText('cos(')" data-inverse="acos(">cos</button>
+        <button class="function" onclick="appendText('tan(')" data-inverse="atan(">tan</button>
+        <button class="function" onclick="appendText('log(')" data-inverse="10^(">log</button>
+        <button class="operator" onclick="appendText('×')">×</button>
+        
+        <button class="function" onclick="appendText('ln(')" data-inverse="e^(">ln</button>
+        <button class="function" onclick="appendText('√(')">√</button>
+        <button class="function" onclick="toggleSign()">±</button>
+        <button class="operator" onclick="appendText('-')">−</button>
+        
+        <button onclick="appendText('7')">7</button>
+        <button onclick="appendText('8')">8</button>
+        <button onclick="appendText('9')">9</button>
+        <button class="operator" onclick="appendText('+')">+</button>
+        
+        <button onclick="appendText('4')">4</button>
+        <button onclick="appendText('5')">5</button>
+        <button onclick="appendText('6')">6</button>
+        <button class="operator" onclick="calculate()">=</button>
+        
+        <button onclick="appendText('1')">1</button>
+        <button onclick="appendText('2')">2</button>
+        <button onclick="appendText('3')">3</button>
+        <button onclick="appendText('.')">.</button>
+        
+        <button></button>
+        <button onclick="appendText('0')">0</button>
+      </div>
+    </div>
+    
+    <!-- Graphing Section -->
+    <div id="graph-section" style="display:none;">
+      <div class="graph-controls">
+        <input type="text" 
+               id="function-input" 
+               placeholder="Enter f(x), e.g., sin(x)+x^2"
+               onkeypress="if(event.key === 'Enter') plotGraph()">
+        <div class="spacing-control">
+          <label for="tick-spacing">Step Size:</label>
+          <input type="number" 
+                 id="tick-spacing" 
+                 value="1" 
+                 min="0.1" 
+                 max="5" 
+                 step="0.1" 
+                 onchange="updateSpacing()"
+                 onkeypress="if(event.key === 'Enter') updateSpacing()">
+        </div>
+        <button class="enter-btn" onclick="plotGraph()">Graph</button>
+      </div>
+      <div class="canvas-container">
+        <canvas id="graph-canvas"></canvas>
+      </div>
+      <div class="value-table">
+        <table>
+          <thead>
+            <tr>
+              <th>x</th>
+              <th>f(x)</th>
+            </tr>
+          </thead>
+          <tbody id="value-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <script src="script.js"></script>
+</body>
+</html>
